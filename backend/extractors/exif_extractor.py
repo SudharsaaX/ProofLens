@@ -81,5 +81,12 @@ def extract_exif(file_bytes: bytes) -> MetadataResult:
         logger.info("EXIF block present but contained no readable fields")
         return MetadataResult(found=False)
 
+    # An Orientation-only stub is preserved by the cleaner to prevent
+    # image rotation issues. It is not meaningful provenance metadata,
+    # so treat it as effectively empty.
+    if list(data.keys()) == ["Orientation"]:
+        logger.info("EXIF contains only Orientation tag (display hint); treating as not found")
+        return MetadataResult(found=False, data=data)
+
     logger.info("EXIF extraction complete: %d fields extracted", len(data))
     return MetadataResult(found=True, data=data, warnings=extraction_warnings)
