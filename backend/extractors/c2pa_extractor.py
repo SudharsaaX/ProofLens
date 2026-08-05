@@ -83,15 +83,18 @@ def extract_c2pa(file_bytes: bytes, filename: str) -> C2PAResult:
             signing_time=signing_time,
         )
 
-    except c2pa.Error as exc:
-        if isinstance(exc, c2pa.Error.ManifestNotFound):
+    except c2pa.C2paError as exc:
+        if isinstance(exc, c2pa.C2paError.ManifestNotFound):
             logger.info("No C2PA manifest found in '%s'", filename)
             return C2PAResult(found=False, verified=False, status="no_manifest", manifest_present=False)
-        if isinstance(exc, c2pa.Error.NotSupported):
+        if isinstance(exc, c2pa.C2paError.NotSupported):
             logger.info("C2PA not supported for format of '%s'", filename)
             return C2PAResult(found=False, verified=False, status="unsupported", manifest_present=False)
+        if isinstance(exc, (c2pa.C2paError.Io, c2pa.C2paError.Decoding)):
+            logger.info("C2PA could not read '%s': %s", filename, exc)
+            return C2PAResult(found=False, verified=False, status="no_manifest", manifest_present=False)
 
-        # Crucial fix: the manifest IS present, but parsing failed (e.g., CBOR decode error)
+        # Fallback: the manifest IS present, but parsing failed (e.g., CBOR decode error)
         logger.warning("C2PA extraction error (Parse Error) for '%s': %s", filename, exc)
         return C2PAResult(
             found=True,

@@ -9,10 +9,12 @@ APP_DESCRIPTION: str = (
 HOST: str = "0.0.0.0"
 PORT: int = int(os.getenv("PORT", 8000))
 DEBUG: bool = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
-CORS_ALLOWED_ORIGINS: List[str] = [
-    "http://localhost:5173",   # Vite dev server (default port)
-    "http://localhost:3000",   # Alternative React port
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
+
+    "https://prooflens-tool.vercel.app",
 ]
 
 # Append environment variable origins if provided (comma-separated)
