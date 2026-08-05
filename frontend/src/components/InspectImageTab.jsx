@@ -6,7 +6,7 @@ import LoadingSpinner from './LoadingSpinner'
 import AnalysisReport from './AnalysisReport'
 import AnimatedButton from './AnimatedButton'
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function InspectImageTab() {
   const [file, setFile] = useState(null)
