@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# ProofLens — Backend Dependencies
+# Pin major versions to avoid surprise breakage. Update deliberately.
+# ---------------------------------------------------------------------------
+
+# Web framework & server
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9   # Required for FastAPI file uploads
+
+# Data validation
+pydantic==2.7.1
+
+# Image processing — core
+Pillow==10.3.0            # Image open, format detection, basic EXIF
+piexif==1.1.3             # Deep EXIF read/write
+
+# Metadata extraction
+iptcinfo3==2.1.4          # IPTC metadata (news/editorial standard)
+# XMP is parsed from raw bytes using stdlib xml.etree — no extra dep needed
+
+# C2PA / Content Credentials
+# c2pa-python is Rust-backed and may require a pre-built wheel.
+# Falls back gracefully if unavailable (see config/settings.py).
+c2pa-python==0.37.2
+# cryptography is a required runtime dep of c2pa-python (not declared in its metadata)
+cryptography>=41.0.0
