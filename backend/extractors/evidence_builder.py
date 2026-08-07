@@ -68,6 +68,8 @@ def build_evidence(
     # Scoring Logic
     if c2pa.found and c2pa.verified:
         score = "Verified Provenance"
+    elif c2pa.found or c2pa.manifest_present:
+        score = "Partial Provenance"
     elif camera and not ai_gen:
         score = "Partial Provenance"
     elif ai_gen:

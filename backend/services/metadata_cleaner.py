@@ -6,7 +6,7 @@ from PIL import Image, ImageOps
 
 logger = logging.getLogger(__name__)
 
-def strip_xmp_iptc_lossless(image_bytes: bytes, remove_iptc: bool, remove_xmp: bool) -> bytes:
+def strip_xmp_iptc_lossless(image_bytes: bytes, remove_iptc: bool, remove_xmp: bool, remove_exif: bool = True) -> bytes:
     if not image_bytes.startswith(b'\xff\xd8'):
         return image_bytes
 
@@ -22,27 +22,32 @@ def strip_xmp_iptc_lossless(image_bytes: bytes, remove_iptc: bool, remove_xmp: b
         if i >= length:
             break
 
-        out.append(0xff)
         i += 1
 
         while i < length and image_bytes[i] == 0xff:
-            out.append(0xff)
             i += 1
 
         if i >= length:
             break
 
         marker = image_bytes[i]
-        out.append(marker)
         i += 1
         if marker == 0xd8 or marker == 0x01 or (0xd0 <= marker <= 0xd7):
+            out.append(0xff)
+            out.append(marker)
             continue
         if marker == 0xda:
+            out.append(0xff)
+            out.append(marker)
             out.extend(image_bytes[i:])
             break
         if marker == 0xd9:
+            out.append(0xff)
+            out.append(marker)
             break
         if i + 1 >= length:
+            out.append(0xff)
+            out.append(marker)
             break
 
         seg_length = (image_bytes[i] << 8) + image_bytes[i+1]
@@ -54,11 +59,74 @@ def strip_xmp_iptc_lossless(image_bytes: bytes, remove_iptc: bool, remove_xmp: b
                 keep = False
         elif marker == 0xed and remove_iptc:
             keep = False
+        elif marker == 0xeb and (remove_xmp or remove_exif):  # APP11 (C2PA / JUMBF)
+            keep = False
 
         if keep:
+            out.append(0xff)
+            out.append(marker)
             out.extend(segment_data)
 
         i += seg_length
+
+    return bytes(out)
+
+def _find_exif_segment(image_bytes: bytes) -> bytes | None:
+    """Return the raw Exif APP1 segment (marker + length + payload) or None."""
+    i = 2
+    length = len(image_bytes)
+    while i + 3 < length:
+        marker = image_bytes[i + 1]
+        if marker == 0xda or marker == 0xd9:
+            return None
+        if marker == 0x01 or (0xd0 <= marker <= 0xd7):
+            i += 2
+            continue
+        seg_length = (image_bytes[i + 2] << 8) + image_bytes[i + 3]
+        if seg_length < 2 or i + 2 + seg_length > length:
+            return None
+        if marker == 0xe1 and image_bytes[i + 4:i + 10] == b'Exif\x00\x00':
+            return image_bytes[i:i + 2 + seg_length]
+        i += 2 + seg_length
+    return None
+
+def _replace_exif_segment(image_bytes: bytes, new_exif: bytes | None) -> bytes:
+    """Rebuild the JPEG, dropping the old Exif APP1 and optionally replacing it."""
+    out = bytearray(b'\xff\xd8')
+    i = 2
+    length = len(image_bytes)
+    inserted = False
+
+    app1_bytes = (b'\xff\xe1' + (len(new_exif) + 2).to_bytes(2, 'big') + new_exif) if new_exif is not None else None
+
+    while i < length:
+        if image_bytes[i] != 0xff:
+            out.extend(image_bytes[i:])
+            break
+        marker = image_bytes[i + 1]
+        if marker == 0xda or marker == 0xd9:
+            if app1_bytes is not None and not inserted:
+                out.extend(app1_bytes)
+                inserted = True
+            out.extend(image_bytes[i:])
+            break
+        if marker == 0x01 or (0xd0 <= marker <= 0xd7):
+            out.extend(image_bytes[i:i + 2])
+            i += 2
+            continue
+        if i + 3 >= length:
+            out.extend(image_bytes[i:])
+            break
+        seg_length = (image_bytes[i + 2] << 8) + image_bytes[i + 3]
+        raw = image_bytes[i:i + 2 + seg_length]
+        if marker == 0xe1 and raw[4:10] == b'Exif\x00\x00':
+            if app1_bytes is not None and not inserted:
+                out.extend(app1_bytes)
+                inserted = True
+            i += 2 + seg_length
+            continue
+        out.extend(raw)
+        i += 2 + seg_length
 
     return bytes(out)
 
@@ -75,14 +143,17 @@ def clean_image(
 
     if is_jpeg:
         logger.info("Processing JPEG losslessly via segment manipulation.")
-        cleaned_bytes = strip_xmp_iptc_lossless(file_bytes, remove_iptc, remove_xmp)
-        try:
-            exif_dict = piexif.load(cleaned_bytes)
-            exif_present = True
-        except Exception:
-            exif_present = False
+        cleaned_bytes = strip_xmp_iptc_lossless(file_bytes, remove_iptc, remove_xmp, remove_exif)
+        exif_segment = _find_exif_segment(cleaned_bytes)
+        exif_present = exif_segment is not None
 
         if exif_present:
+            try:
+                exif_dict = piexif.load(exif_segment[4:])
+            except Exception as e:
+                logger.warning(f"Failed to load EXIF segment for cleaning: {e}")
+                exif_dict = {}
+
             modified = False
 
             if remove_exif:
@@ -91,34 +162,29 @@ def clean_image(
                     new_dict = {"0th": {piexif.ImageIFD.Orientation: orientation}, "Exif": {}, "GPS": {}, "Interop": {}, "1st": {}}
                     try:
                         new_exif = piexif.dump(new_dict)
-                        out_io = BytesIO()
-                        piexif.insert(new_exif, cleaned_bytes, out_io)
-                        cleaned_bytes = out_io.getvalue()
+                        cleaned_bytes = _replace_exif_segment(cleaned_bytes, new_exif)
                     except Exception as e:
                         logger.warning(f"Failed to insert minimal EXIF: {e}")
                 else:
                     try:
-                        out_io = BytesIO()
-                        piexif.remove(cleaned_bytes, out_io)
-                        cleaned_bytes = out_io.getvalue()
+                        cleaned_bytes = _replace_exif_segment(cleaned_bytes, None)
                     except Exception as e:
                         logger.warning(f"Failed to remove EXIF completely: {e}")
             else:
-                if remove_gps and "GPS" in exif_dict:
-                    exif_dict["GPS"] = {}
-                    modified = True
-                if remove_camera and "0th" in exif_dict:
-                    for tag in [piexif.ImageIFD.Make, piexif.ImageIFD.Model, piexif.ImageIFD.Software]:
-                        if tag in exif_dict["0th"]:
-                            del exif_dict["0th"][tag]
-                            modified = True
+                if exif_dict:
+                    if remove_gps and "GPS" in exif_dict:
+                        exif_dict["GPS"] = {}
+                        modified = True
+                    if remove_camera and "0th" in exif_dict:
+                        for tag in [piexif.ImageIFD.Make, piexif.ImageIFD.Model, piexif.ImageIFD.Software]:
+                            if tag in exif_dict["0th"]:
+                                del exif_dict["0th"][tag]
+                                modified = True
 
                 if modified:
                     try:
                         new_exif = piexif.dump(exif_dict)
-                        out_io = BytesIO()
-                        piexif.insert(new_exif, cleaned_bytes, out_io)
-                        cleaned_bytes = out_io.getvalue()
+                        cleaned_bytes = _replace_exif_segment(cleaned_bytes, new_exif)
                     except Exception as e:
                         logger.warning(f"Failed to selectively clean EXIF: {e}")
 
@@ -140,7 +206,10 @@ def clean_image(
         logger.warning(f"Could not transpose image by EXIF: {e}")
 
     img.format = orig_format
-    img.info.update(original_info)
+    img.info.clear()
+
+    if not remove_xmp and "XML:com.adobe.xmp" in original_info:
+        img.info["XML:com.adobe.xmp"] = original_info["XML:com.adobe.xmp"]
 
     new_exif_bytes = b""
     raw_exif = original_info.get("exif")
@@ -148,6 +217,10 @@ def clean_image(
     if raw_exif and not remove_exif:
         try:
             exif_dict = piexif.load(raw_exif)
+            if "0th" in exif_dict:
+                # Pixels were already transposed above; drop the tag to avoid
+                # viewers rotating the cleaned image a second time.
+                exif_dict["0th"].pop(piexif.ImageIFD.Orientation, None)
             if remove_gps and "GPS" in exif_dict:
                 exif_dict["GPS"] = {}
             if remove_camera and "0th" in exif_dict:

@@ -87,6 +87,8 @@ class CleaningReport(BaseModel):
     camera_removed: bool
     iptc_removed: bool
     xmp_removed: bool
+    png_removed: bool = False
+    c2pa_removed: bool = False
 
 class CleanResponse(BaseModel):
     original: AnalysisResponse

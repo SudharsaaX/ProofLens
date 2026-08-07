@@ -6,6 +6,7 @@ from io import BytesIO
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status, Response
 from PIL import Image, UnidentifiedImageError
+from starlette.concurrency import run_in_threadpool
 
 from config import settings
 from models.response import AnalysisResponse, ErrorResponse, HealthResponse, CleanResponse, CleaningReport
@@ -86,7 +87,7 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded file could not be read. It may be corrupt.",
         )
-    result = analyze_image(file_bytes, file.filename or "unknown")
+    result = await run_in_threadpool(analyze_image, file_bytes, file.filename or "unknown")
 
     logger.info(
         "Analyze request complete — filename='%s'",
@@ -141,27 +142,35 @@ async def clean_image_endpoint(
         raise HTTPException(status_code=400, detail="Unrecognized image format")
     except Exception:
         raise HTTPException(status_code=400, detail="Corrupt image")
-    original_analysis = analyze_image(file_bytes, file.filename or "unknown")
+    original_analysis = await run_in_threadpool(analyze_image, file_bytes, file.filename or "unknown")
     try:
-        cleaned_bytes = clean_image(
+        cleaned_bytes = await run_in_threadpool(
+            clean_image,
             file_bytes,
             remove_exif=remove_exif,
             remove_gps=remove_gps,
             remove_camera=remove_camera,
             remove_iptc=remove_iptc,
-            remove_xmp=remove_xmp
+            remove_xmp=remove_xmp,
         )
     except Exception as exc:
         logger.error(f"Error during cleaning: {exc}")
         raise HTTPException(status_code=500, detail="Failed to clean image")
     cleaned_filename = f"cleaned_{file.filename}"
-    cleaned_analysis = analyze_image(cleaned_bytes, cleaned_filename)
+    cleaned_analysis = await run_in_threadpool(analyze_image, cleaned_bytes, cleaned_filename)
+    has_orig_gps = any(k.startswith("GPS") for k in original_analysis.exif.data)
+    has_clean_gps = any(k.startswith("GPS") for k in cleaned_analysis.exif.data)
+    has_orig_cam = any(k in original_analysis.exif.data for k in ("Make", "Model", "Software"))
+    has_clean_cam = any(k in cleaned_analysis.exif.data for k in ("Make", "Model", "Software"))
+
     report = CleaningReport(
         exif_removed=remove_exif and original_analysis.exif.found and not cleaned_analysis.exif.found,
-        gps_removed=remove_gps and original_analysis.exif.found and ("GPSVersionID" not in cleaned_analysis.exif.data),
-        camera_removed=remove_camera and original_analysis.exif.found and ("Make" not in cleaned_analysis.exif.data),
+        gps_removed=remove_gps and has_orig_gps and not has_clean_gps,
+        camera_removed=remove_camera and has_orig_cam and not has_clean_cam,
         iptc_removed=remove_iptc and original_analysis.iptc.found and not cleaned_analysis.iptc.found,
         xmp_removed=remove_xmp and original_analysis.xmp.found and not cleaned_analysis.xmp.found,
+        png_removed=bool(original_analysis.png_metadata and original_analysis.png_metadata.found and not (cleaned_analysis.png_metadata and cleaned_analysis.png_metadata.found)),
+        c2pa_removed=bool(original_analysis.c2pa and original_analysis.c2pa.found and not (cleaned_analysis.c2pa and cleaned_analysis.c2pa.found)),
     )
     download_id = str(uuid.uuid4())
     expires_at = time.time() + CACHE_TTL_SECONDS

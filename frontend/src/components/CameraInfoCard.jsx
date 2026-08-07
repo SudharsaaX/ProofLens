@@ -1,12 +1,13 @@
 import React from 'react'
-import { Box, CardContent, Typography, Grid } from '@mui/material'
-import AnimatedCard from './AnimatedCard'
+import { Box, Typography } from '@mui/material'
+import { Camera } from 'lucide-react'
+import { colors, radius } from '../utils/tokens'
 
 export default function CameraInfoCard({ cameraInfo }) {
   if (!cameraInfo) return null
 
   const items = [
-    { label: 'Camera', value: cameraInfo.manufacturer ? `${cameraInfo.manufacturer} ${cameraInfo.model || ''}` : cameraInfo.model },
+    { label: 'Camera', value: cameraInfo.manufacturer ? `${cameraInfo.manufacturer} ${cameraInfo.model || ''}`.trim() : cameraInfo.model },
     { label: 'Lens', value: cameraInfo.lens },
     { label: 'ISO', value: cameraInfo.iso },
     { label: 'Exposure', value: cameraInfo.exposure },
@@ -17,25 +18,64 @@ export default function CameraInfoCard({ cameraInfo }) {
   if (items.length === 0) return null
 
   return (
-    <AnimatedCard>
-      <CardContent sx={{ p: 4 }}>
-        <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, mb: 3 }}>
+    <Box
+      className="glass-panel"
+      sx={{
+        borderRadius: radius.md,
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          pb: 1,
+          mb: 1.5,
+          borderBottom: '1px solid rgba(66, 71, 84, 0.2)',
+        }}
+      >
+        <Camera size={20} color={colors.secondary} />
+        <Typography sx={{ fontSize: '16px', fontWeight: 600, color: colors.onSurface }}>
           Camera Information
         </Typography>
+      </Box>
 
-        <Grid container spacing={4}>
-          {items.map((item, i) => (
-            <Grid item xs={6} sm={4} key={i}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                {item.label}
-              </Typography>
-              <Typography variant="body1" fontWeight={500}>
-                {item.value}
-              </Typography>
-            </Grid>
-          ))}
-        </Grid>
-      </CardContent>
-    </AnimatedCard>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 1.5,
+        }}
+      >
+        {items.map((item) => (
+          <Box key={item.label}>
+            <Typography
+              sx={{
+                color: colors.outline,
+                display: 'block',
+                mb: 0.5,
+                fontSize: '11px',
+                fontWeight: 500,
+              }}
+            >
+              {item.label}
+            </Typography>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                color: colors.onSurface,
+                fontSize: '13px',
+                wordBreak: 'break-word',
+              }}
+            >
+              {item.value}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
   )
 }

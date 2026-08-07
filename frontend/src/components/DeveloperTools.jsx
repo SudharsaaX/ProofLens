@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { Box, Collapse } from '@mui/material'
+import { Box, Collapse, Button } from '@mui/material'
 import { Code2, ChevronDown, ChevronUp } from 'lucide-react'
 import JsonViewer from './JsonViewer'
-import AnimatedButton from './AnimatedButton'
+import { colors } from '../utils/tokens'
 
 export default function DeveloperTools({ analysis }) {
   const [open, setOpen] = useState(false)
@@ -10,21 +10,26 @@ export default function DeveloperTools({ analysis }) {
   if (!analysis) return null
 
   return (
-    <Box sx={{ mt: 4, mb: 8 }}>
+    <Box sx={{ mt: 3, mb: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <AnimatedButton
-          variant="text"
-          color="inherit"
+        <Button
           onClick={() => setOpen(!open)}
-          startIcon={<Code2 size={16} />}
-          endIcon={open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          startIcon={<Code2 size={15} />}
+          endIcon={open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           sx={{
-            color: 'text.secondary',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }
+            color: colors.outline,
+            fontSize: '13px',
+            fontWeight: 500,
+            px: 2,
+            textTransform: 'none',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.03)',
+              color: colors.outline,
+            },
           }}
         >
           {open ? 'Hide Developer JSON' : 'Show Developer JSON'}
-        </AnimatedButton>
+        </Button>
       </Box>
 
       <Collapse in={open} timeout="auto" unmountOnExit>

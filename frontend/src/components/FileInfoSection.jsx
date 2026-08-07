@@ -1,55 +1,116 @@
 import React, { useState } from 'react'
-import { Box, CardContent, Typography, Grid, IconButton, Tooltip } from '@mui/material'
-import AnimatedCard from './AnimatedCard'
+import { Box, Typography, IconButton, Tooltip } from '@mui/material'
 import { Copy, Check } from 'lucide-react'
 import { formatBytes, truncateHash } from '../utils/formatters'
+import { colors, radius, typography } from '../utils/tokens'
 
 export default function FileInfoSection({ fileInfo }) {
-  if (!fileInfo) return null
   const [copied, setCopied] = useState(false)
 
+  if (!fileInfo) return null
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(fileInfo.file_hash)
+    navigator.clipboard.writeText(fileInfo.sha256)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const items = [
-    { label: 'Format', value: (fileInfo.mime_type || 'Unknown').split('/')[1]?.toUpperCase() || 'Unknown' },
-    { label: 'Dimensions', value: `${fileInfo.width || 0} × ${fileInfo.height || 0}` },
-    { label: 'File Size', value: formatBytes(fileInfo.file_size_bytes) },
-    { label: 'SHA-256', value: fileInfo.file_hash ? truncateHash(fileInfo.file_hash, 8) : 'N/A' },
+    {
+      label: 'Format',
+      value: fileInfo.format || (fileInfo.mime_type || 'Unknown').split('/')[1]?.toUpperCase() || 'Unknown',
+    },
+    {
+      label: 'Dimensions',
+      value: `${fileInfo.width || 0} × ${fileInfo.height || 0}`,
+    },
+    {
+      label: 'File Size',
+      value: formatBytes(fileInfo.size_bytes),
+    },
+    {
+      label: 'SHA-256',
+      value: fileInfo.sha256 ? truncateHash(fileInfo.sha256, 10) : 'N/A',
+      mono: true,
+      copyable: !!fileInfo.sha256,
+    },
   ]
 
   return (
-    <AnimatedCard>
-      <CardContent sx={{ p: 4 }}>
-        <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1, mb: 3 }}>
-          Image Information
-        </Typography>
+    <Box
+      className="glass-panel"
+      sx={{
+        borderRadius: radius.md,
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Typography
+        sx={{
+          ...typography.labelMd,
+          color: colors.onSurfaceVariant,
+          borderBottom: `1px solid rgba(66, 71, 84, 0.1)`,
+          pb: 1,
+          mb: 1,
+          fontWeight: 600,
+        }}
+      >
+        File Information
+      </Typography>
 
-        <Grid container spacing={4}>
-          {items.map((item, index) => (
-            <Grid item xs={6} sm={3} key={index}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                {item.label}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 2,
+        }}
+      >
+        {items.map((item) => (
+          <Box key={item.label}>
+            <Typography
+              sx={{
+                color: colors.outline,
+                display: 'block',
+                mb: 0.5,
+                fontSize: '11px',
+                fontWeight: 500,
+              }}
+            >
+              {item.label}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Typography
+                sx={{
+                  fontWeight: 500,
+                  color: colors.onSurface,
+                  fontSize: '13px',
+                  fontFamily: item.mono ? '"JetBrains Mono", monospace' : 'inherit',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {item.value}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body1" fontWeight={500} sx={{ fontFamily: item.label === 'SHA-256' ? 'monospace' : 'inherit' }}>
-                  {item.value}
-                </Typography>
-                {item.label === 'SHA-256' && fileInfo.file_hash && (
-                  <Tooltip title={copied ? "Copied!" : "Copy Full Hash"} placement="top">
-                    <IconButton size="small" onClick={handleCopy} sx={{ p: 0.5 }}>
-                      {copied ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </CardContent>
-    </AnimatedCard>
+              {item.copyable && (
+                <Tooltip title={copied ? 'Copied!' : 'Copy full hash'} placement="top" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={handleCopy}
+                    aria-label="Copy full SHA-256 hash"
+                    sx={{
+                      p: 0.25,
+                      color: colors.outlineVariant,
+                      '&:hover': { color: colors.outline },
+                    }}
+                  >
+                    {copied ? <Check size={13} color={colors.success} /> : <Copy size={13} />}
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
   )
 }

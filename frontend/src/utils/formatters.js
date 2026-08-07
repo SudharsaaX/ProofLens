@@ -24,29 +24,8 @@ export function formatDate(dateString) {
   }
 }
 
-export function formatFieldLabel(key) {
-  if (!key) return ''
-  return String(key)
-    .replace(/_/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 export function truncateHash(hash, length = 16) {
   if (!hash) return ''
   if (hash.length <= length * 2) return hash
   return `${hash.slice(0, length)}...${hash.slice(-4)}`
-}
-
-export function formatValue(val) {
-  if (val === null || val === undefined) return 'None'
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No'
-  if (typeof val === 'object') {
-    try {
-      return JSON.stringify(val)
-    } catch {
-      return String(val)
-    }
-  }
-  return String(val)
 }

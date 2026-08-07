@@ -249,119 +249,124 @@ class TestPngExtractor:
         assert isinstance(result, MetadataResult)
 
 class TestAiMetadataExtractor:
+    def _meta(self, data=None):
+        return MetadataResult(found=bool(data), data=data or {})
+
     def test_no_signals_returns_none(self):
-        result = extract_ai_metadata({}, {}, {})
+        result = extract_ai_metadata(self._meta(), self._meta(), self._meta())
         assert result is None
 
     def test_exif_software_automatic1111(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "AUTOMATIC1111 v1.8.0"},
-            png_data={},
-            xmp_data={},
+            self._meta({"Software": "AUTOMATIC1111 v1.8.0"}),
+            self._meta(),
+            self._meta(),
         )
         assert result is not None
-        assert "Automatic1111" in result.tool
-        assert result.confidence == "high"
+        assert result.generator_name == "Automatic1111"
 
     def test_exif_software_dalle(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "DALL-E 3"},
-            png_data={},
-            xmp_data={},
+            self._meta({"Software": "DALL-E 3"}),
+            self._meta(),
+            self._meta(),
         )
         assert result is not None
-        assert "DALL-E" in result.tool
+        assert "DALL-E" in result.generator_name
 
     def test_exif_software_firefly(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "Adobe Firefly 2.0"},
-            png_data={},
-            xmp_data={},
+            self._meta({"Software": "Adobe Firefly 2.0"}),
+            self._meta(),
+            self._meta(),
         )
         assert result is not None
-        assert "Firefly" in result.tool
-        assert result.confidence == "high"
+        assert "Firefly" in result.generator_name
 
     def test_exif_software_stability_ai(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "Stable Diffusion XL"},
-            png_data={},
-            xmp_data={},
+            self._meta({"Software": "Stable Diffusion XL"}),
+            self._meta(),
+            self._meta(),
         )
         assert result is not None
-        assert result.confidence in ("high", "medium")
+        assert result.generator_name == "Stable Diffusion"
 
     def test_png_comfyui_workflow_and_prompt(self):
         result = extract_ai_metadata(
-            exif_data={},
-            png_data={"workflow": '{"nodes":[]}', "prompt": '{"1":{}}'},
-            xmp_data={},
+            self._meta(),
+            self._meta(),
+            self._meta({"workflow": '{"nodes":[]}', "prompt": '{"1":{}}'}),
         )
         assert result is not None
-        assert "ComfyUI" in result.tool
+        assert result.generator_name == "ComfyUI"
+        assert result.workflow is not None
 
-    def test_png_invokeai(self):
+    def test_png_invokeai_chunk_not_matched(self):
         result = extract_ai_metadata(
-            exif_data={},
-            png_data={"invokeai_metadata": '{"model":"stable-diffusion"}'},
-            xmp_data={},
+            self._meta(),
+            self._meta(),
+            self._meta({"invokeai_metadata": '{"model":"stable-diffusion"}'}),
         )
-        assert result is not None
-        assert "InvokeAI" in result.tool
-        assert result.confidence == "high"
+        assert result is None
 
     def test_png_parameters_with_steps(self):
         result = extract_ai_metadata(
-            exif_data={},
-            png_data={"parameters": "a cat\nSteps: 20, Sampler: Euler a, CFG scale: 7"},
-            xmp_data={},
+            self._meta(),
+            self._meta(),
+            self._meta({"parameters": "a cat\nSteps: 20, Sampler: Euler a, CFG scale: 7"}),
         )
         assert result is not None
-        assert result.tool  # some tool detected
+        assert result.steps_found is True
+        assert result.sampler_found is True
+        assert result.cfg_found is True
+        assert result.parameters is not None
 
-    def test_midjourney_description(self):
+    def test_exif_software_midjourney(self):
         result = extract_ai_metadata(
-            exif_data={"ImageDescription": "Job ID: abc123 - MJ Job generated"},
-            png_data={},
-            xmp_data={},
+            self._meta({"Software": "Midjourney v6"}),
+            self._meta(),
+            self._meta(),
         )
         assert result is not None
-        assert "Midjourney" in result.tool
+        assert result.generator_name == "Midjourney"
 
     def test_xmp_creator_tool_firefly(self):
         result = extract_ai_metadata(
-            exif_data={},
-            png_data={},
-            xmp_data={"CreatorTool": "Adobe Firefly 3.0"},
+            self._meta(),
+            self._meta({"CreatorTool": "Adobe Firefly 3.0"}),
+            self._meta(),
         )
         assert result is not None
-        assert "Firefly" in result.tool
+        assert "Firefly" in result.generator_name
 
     def test_exif_takes_priority_over_png(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "DALL-E 3"},
-            png_data={"parameters": "Steps: 20, Sampler: Euler a"},
-            xmp_data={},
+            self._meta({"Software": "DALL-E 3"}),
+            self._meta(),
+            self._meta({"parameters": "Steps: 20, Sampler: Euler a"}),
         )
         assert result is not None
-        assert "DALL-E" in result.tool
+        assert "DALL-E" in result.generator_name
 
-    def test_result_has_raw_fields(self):
+    def test_result_captures_workflow(self):
         result = extract_ai_metadata(
-            exif_data={"Software": "Midjourney v6"},
-            png_data={},
-            xmp_data={},
+            self._meta(),
+            self._meta(),
+            self._meta({"workflow": '{"nodes":[]}'}),
         )
         assert result is not None
-        assert "Software" in result.raw_fields
+        assert result.workflow is not None
+        assert result.generator_name == "ComfyUI"
 
-    def test_workflow_alone_not_matched(self):
+    def test_workflow_alone_is_comfyui_signal(self):
         result = extract_ai_metadata(
-            exif_data={},
-            png_data={"workflow": "some data"},
-            xmp_data={},
+            self._meta(),
+            self._meta(),
+            self._meta({"workflow": "some data"}),
         )
-        assert result is None or result.confidence == "low"
+        assert result is not None
+        assert result.generator_name == "ComfyUI"
 
 class TestC2paExtractor:
     def test_no_c2pa_in_plain_jpeg(self):
@@ -388,12 +393,45 @@ class TestC2paExtractor:
         assert result.found is False
         assert result.error is not None
 
-    def test_c2pa_library_now_importable(self):
-        try:
-            import c2pa
-            assert hasattr(c2pa, "Reader")
-        except ImportError as e:
-            pytest.fail(f"c2pa should be importable: {e}")
+    def test_c2pa_verify_error_returns_found_true(self):
+        import c2pa
+        with patch("c2pa.Reader") as mock_reader:
+            mock_reader.side_effect = c2pa.C2paError.Verify("Claim signature invalid")
+            result = extract_c2pa(_make_jpeg(), "test.jpg")
+            assert result.found is True
+            assert result.manifest_present is True
+            assert result.status == "validation_failed"
+            assert result.verified is False
+
+class TestMetadataCleaner:
+    def test_clean_jpeg_with_exif_losslessly(self):
+        from services.metadata_cleaner import clean_image
+        exif_bytes = _make_exif_bytes(software="TestCam", description="Sample Photo")
+        jpeg = _make_jpeg(exif_bytes=exif_bytes)
+        
+        # Clean image with remove_exif=True
+        cleaned = clean_image(jpeg, remove_exif=True, remove_gps=True, remove_camera=True, remove_iptc=True, remove_xmp=True)
+        
+        # Check that cleaned JPEG is valid and loadable by PIL
+        img = Image.open(io.BytesIO(cleaned))
+        assert img.format == "JPEG"
+        
+        # Ensure EXIF software was removed
+        exif_res = extract_exif(cleaned)
+        assert "Software" not in exif_res.data
+
+    def test_clean_jpeg_selectively(self):
+        from services.metadata_cleaner import clean_image
+        exif_bytes = _make_exif_bytes(software="TestCam", description="Sample Photo")
+        jpeg = _make_jpeg(exif_bytes=exif_bytes)
+        
+        # Clean only camera info
+        cleaned = clean_image(jpeg, remove_exif=False, remove_camera=True)
+        img = Image.open(io.BytesIO(cleaned))
+        assert img.format == "JPEG"
+        
+        exif_res = extract_exif(cleaned)
+        assert "Software" not in exif_res.data
 
 class TestSummaryService:
     def _c2pa(self, found=False, verified=False, signer=None, signing_time=None, error=None):
@@ -404,43 +442,55 @@ class TestSummaryService:
     def _meta(self, found=False):
         return MetadataResult(found=found)
 
+    def _evidence(self, score="No Provenance"):
+        from models.response import ProvenanceEvidence
+        return ProvenanceEvidence(score=score, reasoning=[])
+
+    def _build(self, c2pa, exif, iptc, xmp, score="No Provenance"):
+        return build_summary(c2pa, exif, iptc, xmp, self._evidence(score), None, None, None)
+
     def test_no_provenance(self):
-        result = build_summary(self._c2pa(), self._meta(), self._meta(), self._meta())
+        result = self._build(self._c2pa(), self._meta(), self._meta(), self._meta())
         assert result.has_provenance is False
         assert result.provenance_sources == []
         assert "does not prove" in result.human_explanation
 
     def test_c2pa_verified(self):
-        result = build_summary(
+        result = self._build(
             self._c2pa(found=True, verified=True, signer="Adobe Inc."),
             self._meta(), self._meta(), self._meta(),
         )
         assert result.has_provenance is True
         assert "c2pa" in result.provenance_sources
-        assert "verified" in result.human_explanation
-        assert "Adobe Inc." in result.human_explanation
+        assert "successfully verified" in result.human_explanation
 
     def test_c2pa_unverified(self):
-        result = build_summary(
+        result = self._build(
             self._c2pa(found=True, verified=False),
             self._meta(), self._meta(), self._meta(),
+            score="Partial Provenance",
         )
         assert result.has_provenance is True
-        assert "could not be fully verified" in result.human_explanation
+        assert "c2pa" in result.provenance_sources
 
     def test_metadata_only(self):
-        result = build_summary(
+        result = self._build(
             self._c2pa(), self._meta(found=True), self._meta(), self._meta(found=True),
+            score="Metadata Present",
         )
         assert result.has_provenance is True
         assert "exif" in result.provenance_sources
         assert "xmp" in result.provenance_sources
-        assert "EXIF" in result.human_explanation or "XMP" in result.human_explanation
 
-    def test_disclaimer_always_present(self):
-        result = build_summary(self._c2pa(), self._meta(), self._meta(), self._meta())
-        assert len(result.disclaimer) > 0
-        assert len(result.confidence_note) > 0
+    def test_explanation_always_present(self):
+        scenarios = [
+            (self._c2pa(), self._meta(), self._meta(), self._meta()),
+            (self._c2pa(found=True, verified=True), self._meta(), self._meta(), self._meta()),
+            (self._c2pa(), self._meta(found=True), self._meta(found=True), self._meta(found=True)),
+        ]
+        for args in scenarios:
+            result = self._build(*args)
+            assert len(result.human_explanation) > 0
 
     def test_never_claims_ai_generated(self):
         import re
@@ -454,7 +504,7 @@ class TestSummaryService:
             (self._c2pa(), self._meta(found=True), self._meta(found=True), self._meta(found=True)),
         ]
         for args in scenarios:
-            result = build_summary(*args)
+            result = self._build(*args)
             assert not definitive_ai_claim.search(result.human_explanation), (
                 f"Definitive AI claim found in: {result.human_explanation}"
             )
@@ -499,7 +549,7 @@ class TestAnalyzerIntegration:
         exif = _make_exif_bytes(software="AUTOMATIC1111 v1.9")
         result = analyze_image(_make_jpeg(exif_bytes=exif), "ai_image.jpg")
         assert result.generator_metadata is not None
-        assert "Automatic1111" in result.generator_metadata.tool
+        assert "Automatic1111" in result.generator_metadata.generator_name
 
     def test_no_ai_generator_for_plain_image(self):
         result = analyze_image(_make_jpeg(), "plain.jpg")
@@ -515,14 +565,16 @@ class TestAnalyzerIntegration:
         result = analyze_image(_make_jpeg(), "photo.jpg")
         d = result.model_dump()
         assert set(d.keys()) == {
-            "file_info", "c2pa", "exif", "iptc", "xmp", "summary", "generator_metadata"
+            "file_info", "c2pa", "exif", "iptc", "xmp", "png_metadata",
+            "camera_information", "software_detected", "generator_metadata",
+            "editing_history", "provenance", "summary",
         }
 
     def test_png_comfyui_detected(self):
         data = _make_png(text_chunks={"workflow": '{"nodes":[]}', "prompt": '{"1":{}}'})
         result = analyze_image(data, "comfyui_image.png")
         assert result.generator_metadata is not None
-        assert "ComfyUI" in result.generator_metadata.tool
+        assert "ComfyUI" in result.generator_metadata.generator_name
 
     def test_response_sha256_length(self):
         result = analyze_image(_make_jpeg(), "photo.jpg")

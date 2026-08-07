@@ -34,14 +34,18 @@ def _extract_signature_fields(manifest_store: dict) -> tuple[str | None, str | N
     active = manifests.get(active_label, {}) if active_label else {}
 
     sig_info = active.get("signature_info", {})
-    signer = sig_info.get("issuer") or sig_info.get("cert_serial_number")
+    signer = sig_info.get("common_name") or sig_info.get("cert_serial_number") or sig_info.get("issuer")
     signing_time = sig_info.get("time")
     validation_errors = [
         s for s in active.get("validation_status", [])
         if not s.get("code", "").startswith("claimSignature.validated")
         and s.get("url")  # entries with a URL are error entries
     ]
-    verified = bool(active) and not validation_errors
+    validation_state = manifest_store.get("validation_state")
+    if validation_state is not None:
+        verified = bool(active) and validation_state == "Valid"
+    else:
+        verified = bool(active) and not validation_errors
 
     return signer, signing_time, verified
 
@@ -94,12 +98,12 @@ def extract_c2pa(file_bytes: bytes, filename: str) -> C2PAResult:
             logger.info("C2PA could not read '%s': %s", filename, exc)
             return C2PAResult(found=False, verified=False, status="no_manifest", manifest_present=False)
 
-        # Fallback: the manifest IS present, but parsing failed (e.g., CBOR decode error)
-        logger.warning("C2PA extraction error (Parse Error) for '%s': %s", filename, exc)
+        # Fallback: the manifest IS present, but parsing or verification failed
+        logger.warning("C2PA extraction error (Parse/Verification Error) for '%s': %s", filename, exc)
         return C2PAResult(
             found=True,
             verified=False,
-            status="parse_error",
+            status="validation_failed" if isinstance(exc, c2pa.C2paError.Verify) else "parse_error",
             manifest_present=True,
             error=str(exc)
         )

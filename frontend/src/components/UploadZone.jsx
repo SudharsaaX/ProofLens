@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Box, IconButton, Typography, Paper } from '@mui/material'
-import { Camera, X, FileImage } from 'lucide-react'
+import { Box, IconButton, Typography } from '@mui/material'
+import { Upload, X, FileImage } from 'lucide-react'
 import { formatBytes } from '../utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
-import AnimatedButton from './AnimatedButton'
+import GhostButton from './ui/GhostButton'
+import { colors, radius, typography } from '../utils/tokens'
 
-const MotionPaper = motion(Paper)
 const MotionBox = motion(Box)
 
 export default function UploadZone({
@@ -45,6 +45,9 @@ export default function UploadZone({
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
       'image/webp': ['.webp'],
+      'image/tiff': ['.tiff', '.tif'],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif'],
     },
     maxFiles: 1,
     noClick: !!selectedFile,
@@ -53,27 +56,30 @@ export default function UploadZone({
   })
 
   return (
-    <MotionPaper
-      elevation={0}
-      {...getRootProps()}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={!selectedFile ? { y: -2, boxShadow: '0 12px 30px -10px rgba(0,0,0,0.08)' } : {}}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+    <Box
+      className={`animated-border-wrap ${isDragActive ? 'dragover' : ''}`}
       sx={{
-        p: { xs: 3, md: 6 },
-        borderRadius: 4,
-        border: '2px dashed',
-        borderColor: isDragActive ? 'primary.main' : 'divider',
-        bgcolor: isDragActive ? 'rgba(17, 24, 39, 0.02)' : 'background.paper',
-        textAlign: 'center',
-        cursor: selectedFile ? 'default' : 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 0.3s ease, background-color 0.3s ease',
+        width: '100%',
+        height: '100%',
       }}
     >
-      <input {...getInputProps()} />
+      <Box
+        {...getRootProps()}
+        className="animated-border-content"
+        sx={{
+          p: { xs: 3, md: 4 },
+          textAlign: 'center',
+          cursor: selectedFile ? 'default' : 'pointer',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: isDragActive ? 'rgba(173, 198, 255, 0.08)' : 'rgba(18, 18, 18, 0.85)',
+          transition: 'background-color 0.3s ease',
+        }}
+      >
+        <input {...getInputProps()} />
 
       <AnimatePresence mode="wait">
         {!selectedFile ? (
@@ -82,63 +88,99 @@ export default function UploadZone({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}
           >
             <MotionBox
-              animate={isDragActive ? { y: [0, -10, 0] } : { y: [0, -5, 0] }}
-              transition={{ repeat: Infinity, duration: isDragActive ? 1.5 : 3, ease: 'easeInOut' }}
+              animate={isDragActive ? { y: [0, -8, 0] } : { y: [0, -4, 0] }}
+              transition={{ repeat: Infinity, duration: isDragActive ? 1.2 : 3, ease: 'easeInOut' }}
               sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                bgcolor: isDragActive ? '#111827' : 'background.default',
+                width: 56,
+                height: 56,
+                borderRadius: radius.md,
+                bgcolor: isDragActive ? 'rgba(173, 198, 255, 0.15)' : colors.surfaceContainerLow,
                 border: '1px solid',
-                borderColor: 'divider',
+                borderColor: isDragActive ? 'rgba(173, 198, 255, 0.3)' : colors.outlineVariant,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                mb: 3,
-                color: isDragActive ? '#fff' : 'text.primary',
-                boxShadow: isDragActive ? '0 10px 25px -5px rgba(17,24,39,0.3)' : 'none',
+                mb: 2.5,
+                color: isDragActive ? colors.primary : colors.outline,
                 transition: 'all 0.3s ease',
               }}
             >
-              <Camera size={28} />
+              <Upload size={24} />
             </MotionBox>
 
-            <Typography variant="h5" fontWeight={600} gutterBottom sx={{ letterSpacing: '-0.02em' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 1,
+                color: colors.onSurface,
+                fontSize: '1rem',
+                letterSpacing: '-0.01em',
+              }}
+            >
               {isDragActive ? 'Drop image to analyze' : 'Upload an image'}
             </Typography>
 
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 300 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: colors.onSurfaceVariant,
+                mb: 3,
+                maxWidth: 320,
+                fontSize: '0.8125rem',
+                lineHeight: 1.6,
+              }}
+            >
               Drag and drop an image file here, or{' '}
-              <Typography
+              <Box
                 component="span"
-                variant="body1"
-                color="primary.main"
-                fontWeight={600}
-                sx={{ textDecoration: 'underline', cursor: 'pointer' }}
-                onClick={open}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  open()
+                }}
+                sx={{
+                  color: colors.primary,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
               >
                 browse files
-              </Typography>
+              </Box>
             </Typography>
 
-            <Box sx={{ display: 'flex', gap: 1, opacity: 0.6 }}>
-              {['JPEG', 'PNG', 'WEBP'].map(ext => (
-                <Typography key={ext} variant="caption" sx={{ px: 1, py: 0.5, bgcolor: 'divider', borderRadius: 1, fontWeight: 600 }}>
+            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {['JPEG', 'PNG', 'WebP', 'TIFF', 'HEIC'].map((ext) => (
+                <Box
+                  key={ext}
+                  sx={{
+                    px: 1,
+                    py: 0.25,
+                    bgcolor: colors.surfaceContainerLow,
+                    border: `1px solid ${colors.outlineVariant}`,
+                    borderRadius: radius.sm,
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    color: colors.outline,
+                    letterSpacing: '0.05em',
+                    lineHeight: 1.5,
+                  }}
+                >
                   {ext}
-                </Typography>
+                </Box>
               ))}
             </Box>
           </MotionBox>
         ) : (
           <MotionBox
             key="upload-preview"
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            sx={{ py: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            sx={{ py: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           >
             {onClear && !isLoading && (
               <IconButton
@@ -149,36 +191,36 @@ export default function UploadZone({
                 }}
                 sx={{
                   position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  '&:hover': { bgcolor: 'background.default' },
+                  top: 12,
+                  right: 12,
+                  border: `1px solid ${colors.outlineVariant}`,
+                  bgcolor: 'rgba(19, 19, 19, 0.8)',
+                  color: colors.onSurfaceVariant,
+                  width: 28,
+                  height: 28,
+                  '&:hover': { bgcolor: colors.surfaceContainerHigh, color: colors.onSurface },
                   zIndex: 10,
                 }}
               >
-                <X size={16} />
+                <X size={14} />
               </IconButton>
             )}
 
             <Box
               component={motion.div}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               sx={{
-                width: { xs: 200, md: 280 },
-                height: { xs: 200, md: 280 },
-                borderRadius: 3,
+                width: { xs: 180, md: 240 },
+                height: { xs: 180, md: 240 },
+                borderRadius: radius.md,
                 overflow: 'hidden',
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.default',
+                border: `1px solid ${colors.outlineVariant}`,
+                bgcolor: colors.surfaceContainerLowest,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                mb: 3,
-                boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)'
+                mb: 2.5,
               }}
             >
               {previewUrl ? (
@@ -195,37 +237,61 @@ export default function UploadZone({
                   }}
                 />
               ) : (
-                <FileImage size={48} color="#9CA3AF" />
+                <FileImage size={40} color={colors.outline} />
               )}
             </Box>
 
-            <Typography variant="subtitle1" fontWeight={600} noWrap sx={{ maxWidth: '80%', mb: 0.5, letterSpacing: '-0.01em' }}>
+            <Typography
+              variant="subtitle2"
+              noWrap
+              sx={{
+                maxWidth: '80%',
+                mb: 0.5,
+                color: colors.onSurface,
+                fontWeight: 600,
+                fontSize: '0.875rem',
+              }}
+            >
               {selectedFile.name}
             </Typography>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: colors.onSurfaceVariant,
+                mb: 3,
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '0.75rem',
+              }}
+            >
               {formatBytes(selectedFile.size)}
             </Typography>
 
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               {actionButton}
               {!isLoading && (
-                <AnimatedButton
-                  variant="outlined"
+                <GhostButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation()
                     open()
                   }}
-                  sx={{ borderRadius: 2, px: 3 }}
+                  sx={{
+                    borderRadius: radius.default,
+                    px: 2.5,
+                    py: 0.75,
+                    fontSize: '0.8125rem',
+                    color: colors.onSurfaceVariant,
+                  }}
                 >
                   Change Image
-                </AnimatedButton>
+                </GhostButton>
               )}
             </Box>
           </MotionBox>
         )}
       </AnimatePresence>
-    </MotionPaper>
+      </Box>
+    </Box>
   )
 }
