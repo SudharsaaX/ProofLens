@@ -262,7 +262,7 @@ export default function InspectImageTab() {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mt: 1 }}>
             <PrimaryButton variant="gradient" onClick={handleAnalyze} startIcon={<Search size={15} />} fullWidth sx={{ py: 1.5, borderRadius: radius.default, fontSize: '14px', fontWeight: 600 }}>
               Start Verification Scan
             </PrimaryButton>

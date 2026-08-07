@@ -23,7 +23,7 @@ export default function AppShell({ children, footer = true }) {
   const header = HEADER_MAP[pathname] || { icon: null, title: 'ProofLens' }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', bgcolor: colors.background, position: 'relative' }}>
+    <Box sx={{ display: 'flex', height: { xs: '100dvh', md: '100vh' }, width: '100%', overflow: 'hidden', bgcolor: colors.background, position: 'relative' }}>
       <Box className="ambient-glow" />
 
       <AppSidebar />

@@ -102,17 +102,17 @@ export default function FeaturesPage() {
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ...typography.codeSm, fontSize: '13px' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
                     <Typography sx={{ color: colors.outlineVariant }}>Issuer:</Typography>
-                    <Typography sx={{ color: colors.onSurface }}>Content Authenticity Initiative</Typography>
+                    <Typography sx={{ color: colors.onSurface, wordBreak: 'break-word' }}>Content Authenticity Initiative</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
                     <Typography sx={{ color: colors.outlineVariant }}>Timestamp:</Typography>
-                    <Typography sx={{ color: colors.onSurface }}>2024-05-20T14:32:00Z</Typography>
+                    <Typography sx={{ color: colors.onSurface, wordBreak: 'break-word' }}>2024-05-20T14:32:00Z</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
                     <Typography sx={{ color: colors.outlineVariant }}>Hash Check:</Typography>
-                    <Typography sx={{ color: colors.tertiary }}>Match (SHA-256)</Typography>
+                    <Typography sx={{ color: colors.tertiary, wordBreak: 'break-word' }}>Match (SHA-256)</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -216,7 +216,7 @@ export default function FeaturesPage() {
               ))}
             </Box>
           </Box>
-          <GlassPanel sx={{ p: 8, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+          <GlassPanel sx={{ p: { xs: 4, md: 8 }, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
             <Zap size={40} color={colors.primary} style={{ marginBottom: 16 }} />
             <Typography sx={{ ...typography.headlineLg, color: colors.onSurface, mb: 1 }}>Real-time analysis</Typography>
             <Typography sx={{ ...typography.bodyMd, color: colors.onSurfaceVariant, mb: 4 }}>Complete forensic processing in under</Typography>

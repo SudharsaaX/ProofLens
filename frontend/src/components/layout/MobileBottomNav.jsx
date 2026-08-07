@@ -1,10 +1,11 @@
 import React from 'react'
 import { Box, Typography } from '@mui/material'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, SprayCan } from 'lucide-react'
+import { Home, LayoutDashboard, SprayCan } from 'lucide-react'
 import { colors, spacing } from '../../utils/tokens'
 
 const ITEMS = [
+  { label: 'Home', to: '/', icon: <Home size={20} /> },
   { label: 'Workspace', to: '/workspace', icon: <LayoutDashboard size={20} /> },
   { label: 'Privacy Cleaner', to: '/privacy-cleaner', icon: <SprayCan size={20} /> },
 ]
@@ -24,8 +25,10 @@ export default function MobileBottomNav() {
         left: 0,
         width: '100%',
         height: 64,
-        bgcolor: colors.surfaceContainerLowest,
-        borderTop: '1px solid rgba(66, 71, 84, 0.2)',
+        bgcolor: 'rgba(5, 8, 22, 0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1px solid rgba(145, 94, 255, 0.18)',
         justifyContent: 'space-around',
         alignItems: 'center',
         px: spacing.sm,
@@ -36,6 +39,7 @@ export default function MobileBottomNav() {
         <NavLink
           key={item.to}
           to={item.to}
+          end={item.to === '/'}
           style={({ isActive }) => ({
             display: 'flex',
             flexDirection: 'column',

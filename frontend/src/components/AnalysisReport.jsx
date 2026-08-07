@@ -28,9 +28,24 @@ function AnalyzedImageCard({ file, previewUrl, onReset }) {
         position: 'relative',
       }}
     >
-      {/* Top Left: Inspect Another Image button */}
-      {onReset && (
-        <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 10 }}>
+      {/* Top Bar: Inspect Another Image + Chips */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: { xs: 12, md: 16 },
+          left: { xs: 12, md: 16 },
+          right: { xs: 12, md: 16 },
+          zIndex: 10,
+          display: 'flex',
+          justify: 'space-between',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap',
+          pointerEvents: 'none',
+          '& > *': { pointerEvents: 'auto' },
+        }}
+      >
+        {onReset ? (
           <GhostButton
             onClick={onReset}
             startIcon={<UploadCloud size={14} />}
@@ -39,10 +54,10 @@ function AnalyzedImageCard({ file, previewUrl, onReset }) {
               backdropFilter: 'blur(12px)',
               border: '1px solid rgba(145, 94, 255, 0.4)',
               color: colors.primary,
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: 600,
               py: 0.5,
-              px: 1.5,
+              px: 1.25,
               '&:hover': {
                 bgcolor: colors.surfaceContainerHigh,
                 borderColor: colors.primary,
@@ -51,11 +66,9 @@ function AnalyzedImageCard({ file, previewUrl, onReset }) {
           >
             Inspect Another Image
           </GhostButton>
-        </Box>
-      )}
+        ) : <Box />}
 
-      {/* Chips */}
-      <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10, display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
         <Box
           sx={{
             px: 1,
@@ -92,6 +105,7 @@ function AnalyzedImageCard({ file, previewUrl, onReset }) {
           </Box>
         )}
       </Box>
+    </Box>
 
       {/* Subject image with reticle overlay */}
       <Box
@@ -236,13 +250,14 @@ export default function AnalysisReport({ analysis, previewUrl = null, file = nul
               Inspect another digital asset or open Privacy Cleaner to sanitize metadata before sharing.
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             {onReset && (
               <GhostButton
                 onClick={onReset}
                 startIcon={<UploadCloud size={16} />}
                 sx={{
                   whiteSpace: 'nowrap',
+                  flex: { xs: 1, sm: 'initial' },
                   border: `1px solid ${colors.outlineVariant}60`,
                   '&:hover': { borderColor: colors.primary, color: colors.primary },
                 }}
@@ -255,7 +270,7 @@ export default function AnalysisReport({ analysis, previewUrl = null, file = nul
                 variant="pill"
                 onClick={onClear}
                 startIcon={<SprayCan size={16} />}
-                sx={{ whiteSpace: 'nowrap' }}
+                sx={{ whiteSpace: 'nowrap', flex: { xs: 1, sm: 'initial' } }}
               >
                 Open Privacy Cleaner
               </PrimaryButton>
