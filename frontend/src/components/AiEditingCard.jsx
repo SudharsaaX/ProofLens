@@ -8,7 +8,6 @@ export default function AiEditingCard({ generatorInfo, software }) {
 
   const isAI = !!generatorInfo
   const items = []
-
   if (generatorInfo) {
     if (generatorInfo.generator_name) {
       items.push({ label: 'AI Generator', value: generatorInfo.generator_name, highlight: true })
