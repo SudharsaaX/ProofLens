@@ -1,13 +1,13 @@
 import React from 'react'
-import { Box, Button, Typography } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { Code2, Home } from 'lucide-react'
 import Brand from '../ui/Brand'
-import { colors, spacing, radius, typography } from '../../utils/tokens'
+import { colors, spacing, typography } from '../../utils/tokens'
 
 /**
  * Fixed top navigation for the marketing screens (Landing / Features),
- * matching the Stitch top nav: brand, Home link, GitHub, CTA button.
+ * matching the Stitch top nav: brand, Home link, GitHub.
  */
 export default function LandingNav() {
   const navigate = useNavigate()
@@ -91,30 +91,6 @@ export default function LandingNav() {
           >
             <Code2 size={18} /> GitHub
           </Typography>
-
-          <Button
-            onClick={() => navigate('/workspace')}
-            sx={{
-              background: 'linear-gradient(135deg, #7c3aed 0%, #c026d3 100%)',
-              color: '#ffffff',
-              px: 3,
-              py: 1,
-              borderRadius: radius.default,
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: '14px',
-              fontFamily: 'Poppins',
-              boxShadow: '0 0 20px rgba(145, 94, 255, 0.35)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #6d28d9 0%, #a21caf 100%)',
-                boxShadow: '0 0 30px rgba(145, 94, 255, 0.55)',
-                opacity: 0.95,
-              },
-              transition: 'all 0.3s ease',
-            }}
-          >
-            Analyze Image
-          </Button>
         </Box>
       </Box>
     </Box>
